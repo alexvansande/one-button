@@ -16,7 +16,12 @@
   var mainAccount, theButton, lastPressed, yourScore, contractAddress, web3;
   var contractABI = [{"constant":true,"inputs":[],"name":"lastPressed","outputs":[{"name":"","type":"uint256","value":"1499870209"}],"payable":false,"type":"function"},{"constant":false,"inputs":[],"name":"press","outputs":[],"payable":false,"type":"function"},{"inputs":[],"payable":false,"type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"name":"presser","type":"address"},{"indexed":false,"name":"pressTime","type":"uint256"},{"indexed":false,"name":"score","type":"uint256"}],"name":"ButtonPress","type":"event"}];
 
+  var mainnetAddress = '0xffc2114eB9d604C0Eddbd6932678bf24dEf65606'; 
+  var rinkebyAddr = '0xb0B3F49ef8b6dE7Cddd374d5dab7689b5645F4D5'; 
+  var kovanAddr = '0x6bb0Dd5781eA7cDE4F7B1a950fE8DDF0388fdff7'; 
+
   // FUNCTION IS EXECUTED ON PAGE LOAD
+  
   function init() {
 
     // Checks Web3 support
@@ -25,7 +30,9 @@
       web3 = new Web3(web3.currentProvider);
     } else {
       // use Infura if it's not there
-      web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/xb1hnXsk67Yb6pIlVPvv"));
+      // web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/xb1hnXsk67Yb6pIlVPvv"));
+      web3 = new Web3(new Web3.providers.HttpProvider("https://kovan.infura.io/v3/bd2ff188e9fa409a99570ffb7d7f7a31"));
+
       // Hide buttons if it's loading infura
       document.getElementById("not-supported").style.display = "block";
       document.getElementById('theButton').className = 'clicked';
@@ -35,27 +42,54 @@
     }
 
     // Allow buttons to be clicked
-    document.getElementById('theButton').addEventListener('click', pressButton, false);
     document.getElementById('try-again').addEventListener('click', tryAgain, false);
+    // document.getElementById('theButton').addEventListener('click', async pressButton);
+
+    document.getElementById('theButton').addEventListener('click', async () => {
+        // Modern dapp browsers...
+        if (window.ethereum) {
+            window.web3 = new Web3(ethereum);
+            try {
+                // Request account access if needed
+                await ethereum.enable();
+                // Acccounts now exposed
+                mainAccount = web3.eth.accounts[0];
+                pressButton();
+            } catch (error) {
+                // User denied account access...
+            }
+        }
+        // Legacy dapp browsers...
+        else if (window.web3) {
+            window.web3 = new Web3(web3.currentProvider);
+            // Acccounts always exposed
+            mainAccount = web3.eth.accounts[0];
+            pressButton();
+        }
+        // Non-dapp browsers...
+        else {
+            console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+        }
+    });
+
 
     // Get user's ethereum account
     web3.eth.getAccounts(function(e,accounts){ 
         // show the floating baloon
         if (e || !accounts || accounts.length == 0) {
-            document.getElementById("add-account").style.display = "block";
         } else {
           mainAccount = accounts[0];
-        }
+        } 
     });
 
     // Try to load the contract on the mainnet
-    contractAddress = '0xffc2114eB9d604C0Eddbd6932678bf24dEf65606'; 
+    contractAddress = mainnetAddress; 
     web3.eth.getCode(contractAddress, function(e, r) { 
         if (!e && r.length > 3) {
           setup(4010000);    
         } else {
-          // If it fails, try a Rinkeby address
-          contractAddress = '0xb0B3F49ef8b6dE7Cddd374d5dab7689b5645F4D5'; 
+          // If it fails, try a Testnet address
+          contractAddress = kovanAddr; 
           web3.eth.getCode(contractAddress, function(e, r) { 
               if (!e && r.length > 3) {
                 setup(520000);    
@@ -108,6 +142,8 @@
       }
     }, 1000)
   }
+
+
 
   // Actions when you press the button
   function pressButton() {
@@ -221,7 +257,6 @@
 
     <div id="not-supported" class="content not-supported">
       <h2>This Browser does not support Ethereum apps. </h2> 
-      <a href="http://ethereum.org">Download Mist</a>
     </div>
   </div>
 
@@ -229,10 +264,6 @@
     <h2>You pressed at</h2>
     <h1 id="score">loading...</h1>
     <a id="try-again">Try again</a>
-  </div>
-
-  <div id="add-account">
-    Click here to add an account on Mist
   </div>
 
 
